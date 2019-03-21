@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthData } from './auth-data.model';
-import { map } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
+
+const BACKEND_URL = `${environment.apiUrl}/user/`;
 
 @Injectable({
     providedIn: 'root'
@@ -15,7 +17,9 @@ export class AuthService {
     private authStatusListener = new Subject<boolean>();
     private tokenTimer: any;
 
-    constructor(private http: HttpClient, private router: Router) { }
+    constructor(private http: HttpClient, private router: Router) {
+      this.getAuthData();
+    }
 
     getToken() {
         return this.token;
@@ -34,12 +38,20 @@ export class AuthService {
     }
 
     createUser(reqData: AuthData) {
-        return this.http.post('http://localhost:3000/api/user/signup', reqData);
+        return this.http.post(`${BACKEND_URL}signup`, reqData)
+                        .subscribe(() => {
+                          this.router.navigate(['/auth/login']);
+                          this.authStatusListener.next(true);
+                        }, error => {
+                          this.authStatusListener.next(false);
+                        });
     }
 
     login(reqData: {email: string, password: string}) {
-        this.http.post<{token: string, expiresIn: number, user: AuthData}>('http://localhost:3000/api/user/login', reqData)
-            .subscribe(res => {
+        this.http.post<{token: string, expiresIn: number, user: AuthData}>(
+          `${BACKEND_URL}login`,
+          reqData
+          ).subscribe(res => {
                 this.token = res.token;
                 if (this.token) {
                     this.loggedUser = res.user;
@@ -52,6 +64,8 @@ export class AuthService {
                     this.saveAuthData(this.token, res.user, expirationDate);
                     this.router.navigate(['/']);
                 }
+            }, error => {
+              this.authStatusListener.next(false);
             });
     }
 

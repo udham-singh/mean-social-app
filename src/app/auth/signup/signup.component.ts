@@ -1,25 +1,31 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { AuthService } from '../autth.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   templateUrl: './signup.component.html',
   styleUrls: ['./signup.component.css']
 })
-export class SignupComponent {
+export class SignupComponent implements OnInit {
   isLoading = false;
-
+  authListenerSub: Subscription;
   constructor(private authService: AuthService) {}
 
+  ngOnInit() {
+    this.authService.getAuthStatusListener().subscribe(
+      isAuthenticated => {
+        if (!isAuthenticated) {
+        }
+        this.isLoading = false;
+      });
+  }
+
   onSignup(form: NgForm) {
-    console.log(form.value);
     if (form.invalid) {
       return;
     }
-    this.authService.createUser(form.value).subscribe(res => {
-      console.log(res);
-    }, error => {
-      console.log(error);
-    });
+    this.isLoading = true;
+    this.authService.createUser(form.value);
   }
 }
